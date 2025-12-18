@@ -74,7 +74,7 @@ typing-test/
 
 ## 🔗 Demo
 
-👉 **Live Demo:** [github/mohitscodiclab/typing-test]
+👉 **Live Demo:** [https://mohitscodiclab.github.io/Typing-test/]
 
 *(Replace this with your deployed GitHub Pages or live hosting URL if available)*
 
