@@ -2,6 +2,12 @@
 
 A modern, interactive **Typing Test Web Application** that measures your **typing speed (WPM)** and **accuracy**, and visually represents your performance using a **graph after test completion**. This project is ideal for practicing typing skills and understanding performance trends in real time.
 
+
+## 🔗 Demo
+
+👉 **Live Demo:** [https://mohitscodiclab.github.io/Typing-test/]
+
+---
 ---
 
 ## 🚀 Features
@@ -70,13 +76,6 @@ typing-test/
 
    * Simply open `index.html` in your browser
 
----
-
-## 🔗 Demo
-
-👉 **Live Demo:** [https://mohitscodiclab.github.io/Typing-test/]
-
-*(Replace this with your deployed GitHub Pages or live hosting URL if available)*
 
 ---
 
