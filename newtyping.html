@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monkeytype Clone</title>
+<style>
+  body {
+    background-color: #181818;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .container {
+    width: 60%;
+    max-width: 600px;
+    text-align: center;
+  }
+  .settings {
+    margin-bottom: 20px;
+  }
+  .word-box {
+    background: #222;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    min-height: 80px;
+    font-size: 1.3em;
+    word-break: break-word;
+  }
+  .word {
+    color: #666;
+    margin: 0 5px;
+    transition: color 0.2s;
+  }
+  .word.active {
+    color: #fff;
+    background: #333;
+    border-radius: 5px;
+    padding: 2px 6px;
+  }
+  .word.correct {
+    color: #4caf50;
+  }
+  .word.incorrect {
+    color: #f44336;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    outline: none;
+    margin-bottom: 10px;
+    background: #333;
+    color: #eee;
+    box-sizing: border-box;
+  }
+  .punctuation-buttons {
+    margin-bottom: 10px;
+  }
+  .punctuation-buttons button {
+    margin: 3px;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 4px;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  .punctuation-buttons button:hover {
+    background-color: #666;
+  }
+  canvas {
+    margin-top: 30px;
+  }
+  button.start-btn {
+    margin-top: 15px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4caf50;
+    color: white;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  button.start-btn:disabled, button.start-btn[disabled] {
+    background-color: #888;
+    cursor: not-allowed;
+  }
+  button.start-btn:hover:not([disabled]) {
+    background-color: #43a047;
+  }
+  .results {
+    margin-top: 15px;
+    font-size: 1.2em;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="settings">
+    <label>Test Duration (seconds): </label>
+    <input type="number" id="duration" value="30" min="10" max="120"> <br>
+    <button id="startButton" class="start-btn">Start Test</button>
+  </div>
+  <div id="gameArea" style="display:none;">
+    <div class="word-box" id="wordBox"></div>
+    <input type="text" id="inputBox" placeholder="Start typing..." disabled>
+    <div class="punctuation-buttons">
+      <button class="punct">,</button>
+      <button class="punct">.</button>
+      <button class="punct">!</button>
+      <button class="punct">?</button>
+      <button class="punct">;</button>
+      <button class="punct">:</button>
+    </div>
+    <div id="timerDisplay"></div>
+    <div class="results" id="results"></div>
+    <canvas id="resultChart" width="400" height="180"></canvas>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Word List (expand as needed or randomize via API)
+const words = [
+  'example','keyboard','javascript','monkeytype','practice','speed','accuracy','typing','challenge','focused',
+  'performance','developer','interface','language','creative','modern','technology','internet','browser','game',
+  'fast','slow','improve','method','object','class','system','virtual','machine','syntax','code','expert','skill'
+];
+let timeLeft = 30;
+let timeInterval;
+let testDuration = 30;
+let currentWordIdx = 0;
+let typedWords = 0;
+let correctWords = 0;
+let incorrectWords = 0;
+let typedData = [];
+let running = false;
+let testStarted = false;
+
+const startButton = document.getElementById('startButton');
+const durationInput = document.getElementById('duration');
+const gameArea = document.getElementById('gameArea');
+const wordBox = document.getElementById('wordBox');
+const inputBox = document.getElementById('inputBox');
+const timerDisplay = document.getElementById('timerDisplay');
+const resultChart = document.getElementById('resultChart');
+const punctButtons = document.querySelectorAll('.punct');
+const resultsDisplay = document.getElementById('results');
+
+function generateWords(count = 40) {
+  wordBox.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const span = document.createElement('span');
+    span.textContent = words[Math.floor(Math.random() * words.length)];
+    span.classList.add('word');
+    if(i===0) span.classList.add('active');
+    wordBox.appendChild(span);
+  }
+  currentWordIdx = 0;
+}
+function startGame() {
+  testStarted = true;
+  timeLeft = parseInt(durationInput.value);
+  testDuration = timeLeft;
+  typedWords = 0;
+  correctWords = 0;
+  incorrectWords = 0;
+  typedData = [];
+  resultsDisplay.textContent = '';
+  generateWords();
+  inputBox.disabled = false;
+  inputBox.value = '';
+  inputBox.focus();
+  gameArea.style.display = 'block';
+  startButton.disabled = true;
+  running = true;
+  timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+  let tick = 0;
+  timeInterval = setInterval(() => {
+    timeLeft--;
+    tick++;
+    timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+    let curWPM = Math.round((typedWords / (tick)) * 60);
+    typedData.push({time: tick, wpm: curWPM});
+    if(timeLeft <= 0){
+      endGame();
+    }
+  }, 1000);
+}
+
+function endGame() {
+  clearInterval(timeInterval);
+  running = false;
+  inputBox.disabled = true;
+  startButton.disabled = false;
+  let wpm = Math.round((typedWords / testDuration) * 60);
+  let accuracy = typedWords > 0 ? Math.round((correctWords / typedWords) * 100) : 0;
+  resultsDisplay.textContent = `Test Complete! WPM: ${wpm} | Accuracy: ${accuracy}%`;
+  drawChart();
+}
+
+function drawChart() {
+  const ctx = resultChart.getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: typedData.map(d=>d.time),
+      datasets: [{
+        label: 'WPM Progress',
+        data: typedData.map(d=>d.wpm),
+        borderColor: '#4caf50',
+        backgroundColor: 'rgba(76,175,80,0.15)',
+        tension: 0.25,
+        fill: true,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {display: false}
+      },
+      scales: {
+        x: {title: {display: true, text:'Time (s)'}},
+        y: {beginAtZero: true, title: {display: true, text:'WPM'}}
+      }
+    }
+  });
+}
+
+function resetWordsColor() {
+  document.querySelectorAll('.word').forEach(w => {
+    w.classList.remove('active','correct','incorrect');
+  });
+}
+
+inputBox.addEventListener('keydown', function(e) {
+  if(!running) return;
+  if(e.key === ' ' || e.key === 'Enter'){
+    e.preventDefault();
+    let inputVal = inputBox.value.trim();
+    let wordsArr = document.querySelectorAll('.word');
+    if(currentWordIdx < wordsArr.length) {
+      let thisWord = wordsArr[currentWordIdx].textContent;
+      if(inputVal === thisWord){
+        wordsArr[currentWordIdx].classList.add('correct');
+        correctWords++;
+      }else{
+        wordsArr[currentWordIdx].classList.add('incorrect');
+        incorrectWords++;
+      }
+      wordsArr[currentWordIdx].classList.remove('active');
+      currentWordIdx++;
+      if(currentWordIdx < wordsArr.length)
+        wordsArr[currentWordIdx].classList.add('active');
+    }
+    typedWords++;
+    inputBox.value = '';
+    if(currentWordIdx === wordsArr.length){
+      // Generate more words if run out
+      let moreCount = 20;
+      for(let i=0; i<moreCount; i++){
+        const span = document.createElement('span');
+        span.textContent = words[Math.floor(Math.random() * words.length)];
+        span.classList.add('word');
+        wordBox.appendChild(span);
+      }
+    }
+  }
+});
+
+punctButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(!testStarted || inputBox.disabled) return;
+    let val = inputBox.value;
+    let start = inputBox.selectionStart;
+    let end = inputBox.selectionEnd;
+    inputBox.value = val.substring(0, start) + btn.textContent + val.substring(end);
+    inputBox.focus();
+  });
+});
+
+startButton.addEventListener('click', startGame);
+
+</script>
+</body>
+</html>
